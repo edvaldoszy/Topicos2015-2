@@ -12,7 +12,7 @@ public class MainGame extends ApplicationAdapter {
 	private float largura, altura;
 	private int div = 3;
 
-	private char[][] jogos;
+	private char[][] jogos= new char[div][div];
 
 	@Override
 	public void create () {
@@ -20,8 +20,7 @@ public class MainGame extends ApplicationAdapter {
 
 		largura = Gdx.graphics.getWidth();
 		altura = Gdx.graphics.getHeight();
-
-		jogos = new char[div][div];
+		
 		jogos[2][0] = 'x'; jogos[2][1] = 'x'; jogos[2][2] = 'o';
 		jogos[1][0] = 'x'; jogos[1][1] = 'o'; jogos[1][2] = 'x';
 		jogos[0][0] = 'o'; jogos[0][1] = 'x'; jogos[0][2] = 'x';
