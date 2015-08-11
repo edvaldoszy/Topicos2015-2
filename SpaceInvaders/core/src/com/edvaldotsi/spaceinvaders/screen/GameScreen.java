@@ -1,12 +1,15 @@
 package com.edvaldotsi.spaceinvaders.screen;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import com.edvaldotsi.spaceinvaders.MainGame;
@@ -22,6 +25,11 @@ public class GameScreen extends BaseScreen {
 
     private BitmapFont font;
     private Label lbScore;
+
+    private Texture texturePlayer, texturePlayerLeft, texturePlayerRight;
+    private Image player;
+
+    private boolean toLeft, toRight, toUp, toDown;
 
     /**
      * Construtor padrão da tela do jogo
@@ -43,6 +51,19 @@ public class GameScreen extends BaseScreen {
 
         initFont();
         initInformation();
+        initPlayer();
+    }
+
+    private void initPlayer() {
+
+        texturePlayer = new Texture("spaceship/player.jpg");
+        player = new Image(texturePlayer);
+
+        float x = camera.viewportWidth / 2 - player.getWidth() / 2;
+        float y = 10;
+        player.setPosition(x, y);
+
+        stage.addActor(player);
     }
 
     private void initInformation() {
@@ -64,13 +85,56 @@ public class GameScreen extends BaseScreen {
      */
     @Override
     public void render(float delta) {
-        Gdx.gl.glClearColor(0, 0, 0, 1);
+        Gdx.gl.glClearColor(0.023f, 0.039f, 0.08f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         lbScore.setPosition(20, camera.viewportHeight - 30);
 
+        controls();
+        updatePlayer(delta);
+
         stage.act(delta);
         stage.draw();
+    }
+
+    private void updatePlayer(float delta) {
+        float speed = 200; // Velocidade de movimento do jogador
+        float x = player.getX(), y = player.getY();
+
+        if (toLeft) {
+            x = player.getX() - speed * delta;
+        } else if (toRight)
+            x = player.getX() + speed * delta;
+
+        if (x <= 0 || (x + player.getWidth()) >= camera.viewportWidth)
+            x = player.getX();
+
+        /*
+        if (toLeft)
+            player.setDrawable(new SpriteDrawable(new Sprite(texturePlayerLeft)));
+        else if (toRight)
+            player.setDrawable(new SpriteDrawable(new Sprite(texturePlayerRight)));
+        else
+            player.setDrawable(new SpriteDrawable(new Sprite(texturePlayer)));
+        */
+
+        if (toUp)
+            y = player.getY() + speed * delta;
+        else if (toDown)
+            y = player.getY() - speed * delta;
+
+        if (y <= 0 || (y + player.getHeight()) >= camera.viewportHeight)
+            y = player.getY();
+
+        player.setPosition(x, y);
+    }
+
+    private void controls() {
+
+        toLeft = Gdx.input.isKeyPressed(Input.Keys.LEFT) ? true : false;
+        toRight = Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? true : false;
+        toUp = Gdx.input.isKeyPressed(Input.Keys.UP) ? true : false;
+        toDown = Gdx.input.isKeyPressed(Input.Keys.DOWN) ? true : false;
     }
 
     /**
@@ -108,5 +172,8 @@ public class GameScreen extends BaseScreen {
         batch.dispose();
         stage.dispose();
         font.dispose();
+        texturePlayer.dispose();
+        //texturePlayerLeft.dispose();
+        //texturePlayerRight.dispose();
     }
 }
