@@ -13,13 +13,13 @@ public class MainGame extends ApplicationAdapter {
 	private float sizeX, sizeY;
 	private int div = 3;
 
-	private boolean[][] jogos = {
-			{true, false, true},
-			{false, true, true},
-			{false, true, false}
+	private int[][] jogos = {
+			{0, 2, 0},
+			{0, 0, 0},
+			{1, 2, 2}
 	};
 
-	boolean o = true;
+	int o = 1;
 
 	@Override
 	public void create () {
@@ -28,12 +28,6 @@ public class MainGame extends ApplicationAdapter {
 
 		largura = Gdx.graphics.getWidth();
 		altura = Gdx.graphics.getHeight();
-
-		/*
-		jogos[2][0] = true; jogos[2][1] = true; jogos[2][2] = false;
-		jogos[1][0] = true; jogos[1][1] = false; jogos[1][2] = true;
-		jogos[0][0] = false; jogos[0][1] = true; jogos[0][2] = true;
-		*/
 	}
 
 	@Override
@@ -58,18 +52,20 @@ public class MainGame extends ApplicationAdapter {
 				float x = sizeX / 2 + sizeX * n;
 				float y = sizeY / 2 + sizeY * (2 - m);
 
-				if (jogos[m][n]) {
+				if (jogos[m][n] == 1) {
 					sr.setColor(1, 1, 0, 1);
 					fazerX(x, y, 40);
-				} else {
+				} else if (jogos[m][n] == 2) {
 					sr.setColor(1, 0, 1, 1);
 					fazerO(x, y, 40);
 				}
+
 			}
 
 		sr.end();
 
 		jogar();
+		ganhador();
 	}
 
 	private void fazerX(float x, float y, int size) {
@@ -89,7 +85,12 @@ public class MainGame extends ApplicationAdapter {
 			int posX = Math.abs(Gdx.input.getX() / (int) sizeX);
 			int posY = Math.abs(Gdx.input.getY() / (int) sizeY);
 
-			jogos[posY][posX] = o = !o;
+			//if (jogos[posY][posX])
+            //jogos[posY][posX] = o = !o;
 		}
+	}
+
+	public void ganhador() {
+
 	}
 }
