@@ -13,6 +13,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import com.edvaldotsi.spaceinvaders.MainGame;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.math.MathUtils;
 
 /**
  * Created by edvaldo on 03/08/15.
@@ -30,6 +32,13 @@ public class GameScreen extends BaseScreen {
     private Image player;
 
     private boolean toLeft, toRight, toUp, toDown;
+    private shoting = false;
+
+    private Array<Image> shots = new Array<Image>();
+    private Texture textureShoot;
+
+    private Array<Image> enemy1 = Array<Image>, enemy2 = new Array<Image>;
+    private Texture textureEnemy1, textureEnemy2;
 
     /**
      * Construtor padrão da tela do jogo
@@ -49,11 +58,21 @@ public class GameScreen extends BaseScreen {
         batch = new SpriteBatch();
         stage = new Stage(new FillViewport(camera.viewportWidth, camera.viewportHeight, camera));
 
+        initTextures();
         initFont();
         initInformation();
         initPlayer();
     }
 
+    private void initTextures() {
+    	textureShot = new Texture("sprites/shot.png");
+    	textureEnemy1 = new Texture("sprites/enemy1.png");
+    	textureEnemy2 = new Texture("sprites/enemy2.png");
+    }
+
+    /**
+     * Instancia os objetos do jogador e adiciona no palco
+     */
     private void initPlayer() {
 
         texturePlayer = new Texture("spaceship/player.jpg");
@@ -66,6 +85,9 @@ public class GameScreen extends BaseScreen {
         stage.addActor(player);
     }
 
+    /**
+     * Instancia as informações escritas na tela
+     */
     private void initInformation() {
         Label.LabelStyle estilo = new Label.LabelStyle();
         estilo.fontColor = Color.WHITE;
@@ -92,8 +114,13 @@ public class GameScreen extends BaseScreen {
 
         controls();
         updatePlayer(delta);
+        updateShots(delta);
+        updateEnemy();
 
+        // Atualiza a situação do palco
         stage.act(delta);
+
+        // Desenha o palco na tela
         stage.draw();
     }
 
@@ -118,6 +145,7 @@ public class GameScreen extends BaseScreen {
             player.setDrawable(new SpriteDrawable(new Sprite(texturePlayer)));
         */
 
+        // Verifica se o jogador está dentro da tela
         if (toUp)
             y = player.getY() + speed * delta;
         else if (toDown)
@@ -131,10 +159,64 @@ public class GameScreen extends BaseScreen {
 
     private void controls() {
 
-        toLeft = Gdx.input.isKeyPressed(Input.Keys.LEFT) ? true : false;
-        toRight = Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? true : false;
-        toUp = Gdx.input.isKeyPressed(Input.Keys.UP) ? true : false;
-        toDown = Gdx.input.isKeyPressed(Input.Keys.DOWN) ? true : false;
+        toLeft = Gdx.input.isKeyPressed(Input.Keys.LEFT);
+        toRight = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+        toUp = Gdx.input.isKeyPressed(Input.Keys.UP);
+        toDown = Gdx.input.isKeyPressed(Input.Keys.DOWN);
+        shoting = Gdx.input.isKeyPressed(Input.Keys.SPACE);
+    }
+
+    private float shotInterval = 0; // Tempo acumulado entre os tiros
+    private final float MIN_SHOT_INTERVAL = 0.5f; // Minimo de tempo entre os tiros
+
+    private void updateShots(float delta) {
+    	float speed = 100;
+
+    	shotInterval += delta; // Acumula o tempo percorrido
+    	if (shoting) {
+    		// Verifica se o tempo mínimo foi atingido
+    		if (shotInterval >= MIN_SHOT_INTERVAL) { // Percorre todos os tiros existentes
+    			Image shot = new Image(textureShot);
+	    		float x = (player.getX() + player.getWidth() / 2 - shot.getWidth() / 2), y = (player.getY() + player.getHeight());
+	    		shot.setPosition(x, y);
+	    		shots.add(tipo);
+	    		stage.addActor(tipo);
+	    		shotInterval = 0;
+    		}
+    	}
+
+    	for (Image shot : shots) { // Movimenta o tiro em direção ao topo
+    		float x = shot.getX(), y = shot.getY() + speed * delta;
+    		shot.setPosition(x, y);
+
+    		// Remove os tiros que sairam da tela
+    		if (shot.getY() > camera.viewportHeight)
+    			shots.removeValue(shot, true); // Remove da lista
+    			shot.remove(); // Remove do palco
+    	}
+    }
+
+    private void updateEnemy(float delta) {
+    	int tipo = MathUtils.random(1, 3);
+
+    	if (tipo == 1) {
+    		// Cria meteoro 1
+    		Image img1 = new Image(textureEnemy1);
+    		float x = MathUtils.random(0, camera.viewportWidth - img1.getWidth());
+    		float y = MathUtils.random(camera.viewportHeight, camera.viewportHeight * 2);
+    		img1.setPosition(x, y);
+    		enemy1.add(img1);
+    		stage.addActor(img1);
+    	} else {
+    		// Cria meteoro 2
+    	}
+
+    	float speed = 200;
+    	for (Image enemy : enemy1) {
+    		float x = enemy.getX();
+    		float y = enemy.getY() - speed * delta;
+    		enemy.setPosition(x, y);
+    	}
     }
 
     /**
@@ -173,6 +255,9 @@ public class GameScreen extends BaseScreen {
         stage.dispose();
         font.dispose();
         texturePlayer.dispose();
+        textureShot.dispose();
+        textureEnemy1.dispose();
+        textureEnemy2.dispose();
         //texturePlayerLeft.dispose();
         //texturePlayerRight.dispose();
     }
