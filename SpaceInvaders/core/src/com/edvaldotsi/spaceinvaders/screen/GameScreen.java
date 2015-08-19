@@ -28,16 +28,17 @@ public class GameScreen extends BaseScreen {
     private BitmapFont font;
     private Label lbScore;
 
-    private Texture texturePlayer, texturePlayerLeft, texturePlayerRight;
+    private Texture texturePlayer, textureShot;
     private Image player;
 
     private boolean toLeft, toRight, toUp, toDown;
-    private shoting = false;
+    private boolean shoting = false;
 
     private Array<Image> shots = new Array<Image>();
     private Texture textureShoot;
 
-    private Array<Image> enemy1 = Array<Image>, enemy2 = new Array<Image>;
+    private Array<Image> enemy1 = new Array<Image>();
+    private Array<Image> enemy2 = new Array<Image>();
     private Texture textureEnemy1, textureEnemy2;
 
     /**
@@ -115,7 +116,7 @@ public class GameScreen extends BaseScreen {
         controls();
         updatePlayer(delta);
         updateShots(delta);
-        updateEnemy();
+        updateEnemy(delta);
 
         // Atualiza a situação do palco
         stage.act(delta);
@@ -135,15 +136,6 @@ public class GameScreen extends BaseScreen {
 
         if (x <= 0 || (x + player.getWidth()) >= camera.viewportWidth)
             x = player.getX();
-
-        /*
-        if (toLeft)
-            player.setDrawable(new SpriteDrawable(new Sprite(texturePlayerLeft)));
-        else if (toRight)
-            player.setDrawable(new SpriteDrawable(new Sprite(texturePlayerRight)));
-        else
-            player.setDrawable(new SpriteDrawable(new Sprite(texturePlayer)));
-        */
 
         // Verifica se o jogador está dentro da tela
         if (toUp)
@@ -167,10 +159,10 @@ public class GameScreen extends BaseScreen {
     }
 
     private float shotInterval = 0; // Tempo acumulado entre os tiros
-    private final float MIN_SHOT_INTERVAL = 0.5f; // Minimo de tempo entre os tiros
+    private final float MIN_SHOT_INTERVAL = 0.2f; // Minimo de tempo entre os tiros
 
     private void updateShots(float delta) {
-    	float speed = 100;
+    	float speed = 600;
 
     	shotInterval += delta; // Acumula o tempo percorrido
     	if (shoting) {
@@ -179,8 +171,8 @@ public class GameScreen extends BaseScreen {
     			Image shot = new Image(textureShot);
 	    		float x = (player.getX() + player.getWidth() / 2 - shot.getWidth() / 2), y = (player.getY() + player.getHeight());
 	    		shot.setPosition(x, y);
-	    		shots.add(tipo);
-	    		stage.addActor(tipo);
+	    		shots.add(shot);
+	    		stage.addActor(shot);
 	    		shotInterval = 0;
     		}
     	}
@@ -190,33 +182,53 @@ public class GameScreen extends BaseScreen {
     		shot.setPosition(x, y);
 
     		// Remove os tiros que sairam da tela
-    		if (shot.getY() > camera.viewportHeight)
-    			shots.removeValue(shot, true); // Remove da lista
-    			shot.remove(); // Remove do palco
+    		if (shot.getY() > camera.viewportHeight) {
+                shots.removeValue(shot, true); // Remove da lista
+                shot.remove(); // Remove do palco
+            }
     	}
     }
 
+    private float enemyInterval = 0; // Tempo acumulado entre os tiros
+    private final float MIN_ENEMY_INTERVAL = 0.2f; // Minimo de tempo entre os tiros
+
     private void updateEnemy(float delta) {
     	int tipo = MathUtils.random(1, 3);
+        float speed = 200;
 
-    	if (tipo == 1) {
-    		// Cria meteoro 1
-    		Image img1 = new Image(textureEnemy1);
-    		float x = MathUtils.random(0, camera.viewportWidth - img1.getWidth());
-    		float y = MathUtils.random(camera.viewportHeight, camera.viewportHeight * 2);
-    		img1.setPosition(x, y);
-    		enemy1.add(img1);
-    		stage.addActor(img1);
-    	} else {
-    		// Cria meteoro 2
-    	}
+        enemyInterval += delta;
+        if (enemyInterval >= MIN_ENEMY_INTERVAL) {
+            if (tipo == 1) {
+                // Cria meteoro 1
+                Image img = new Image(textureEnemy1);
+                float x = MathUtils.random(0, camera.viewportWidth - img.getWidth());
+                float y = MathUtils.random(camera.viewportHeight, camera.viewportHeight * 2);
+                img.setPosition(x, y);
+                enemy1.add(img);
+                stage.addActor(img);
+            } else {
+                // Cria meteoro 2
+                Image img = new Image(textureEnemy2);
+                float x = MathUtils.random(0, camera.viewportWidth - img.getWidth());
+                float y = MathUtils.random(camera.viewportHeight, camera.viewportHeight * 2);
+                img.setPosition(x, y);
+                enemy2.add(img);
+                stage.addActor(img);
+            }
+            enemyInterval = 0;
+        }
 
-    	float speed = 200;
     	for (Image enemy : enemy1) {
     		float x = enemy.getX();
     		float y = enemy.getY() - speed * delta;
     		enemy.setPosition(x, y);
     	}
+
+        for (Image enemy : enemy2) {
+            float x = enemy.getX();
+            float y = enemy.getY() - speed * delta;
+            enemy.setPosition(x, y);
+        }
     }
 
     /**
@@ -257,8 +269,6 @@ public class GameScreen extends BaseScreen {
         texturePlayer.dispose();
         textureShot.dispose();
         textureEnemy1.dispose();
-        textureEnemy2.dispose();
-        //texturePlayerLeft.dispose();
-        //texturePlayerRight.dispose();
+        textureEnemy2.dispose();;
     }
 }
