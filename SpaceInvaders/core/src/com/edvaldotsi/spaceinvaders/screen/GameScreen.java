@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -17,7 +18,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.math.MathUtils;
 
 /**
- * Created by edvaldo on 03/08/15.
+ * Created by Edvaldo on 03/08/15.
  */
 public class GameScreen extends BaseScreen {
 
@@ -26,7 +27,7 @@ public class GameScreen extends BaseScreen {
     private Stage stage;
 
     private BitmapFont font;
-    private Label lbScore;
+    private Label lbScore, lbGameOver;
 
     private Texture texturePlayer, textureShot;
     private Image player;
@@ -35,11 +36,15 @@ public class GameScreen extends BaseScreen {
     private boolean shoting = false;
 
     private Array<Image> shots = new Array<Image>();
-    private Texture textureShoot;
 
     private Array<Image> enemy1 = new Array<Image>();
     private Array<Image> enemy2 = new Array<Image>();
     private Texture textureEnemy1, textureEnemy2;
+
+    private Rectangle recPlayer, recShot, recEnemy;
+
+    private Integer score = 0;
+    private boolean gameOver = false;
 
     /**
      * Construtor padrão da tela do jogo
@@ -61,8 +66,13 @@ public class GameScreen extends BaseScreen {
 
         initTextures();
         initFont();
-        initInformation();
         initPlayer();
+        initInformation();
+
+        recPlayer = new Rectangle();
+        recShot = new Rectangle();
+        recShot = new Rectangle();
+        recEnemy = new Rectangle();
     }
 
     private void initTextures() {
@@ -90,12 +100,16 @@ public class GameScreen extends BaseScreen {
      * Instancia as informações escritas na tela
      */
     private void initInformation() {
-        Label.LabelStyle estilo = new Label.LabelStyle();
-        estilo.fontColor = Color.WHITE;
-        estilo.font = font;
+        Label.LabelStyle style = new Label.LabelStyle();
+        style.fontColor = Color.WHITE;
+        style.font = font;
 
-        lbScore = new Label("Score: 0", estilo);
+        lbScore = new Label("Score: 0", style);
         stage.addActor(lbScore);
+
+        lbGameOver = new Label("Game Over", style);
+        lbGameOver.setVisible(false);
+        stage.addActor(lbGameOver);
     }
 
     private void initFont() {
@@ -111,18 +125,56 @@ public class GameScreen extends BaseScreen {
         Gdx.gl.glClearColor(0.023f, 0.039f, 0.08f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        lbScore.setPosition(20, camera.viewportHeight - 30);
+        if (!gameOver) {
+            controls();
 
-        controls();
-        updatePlayer(delta);
-        updateShots(delta);
-        updateEnemy(delta);
+            updateScore();
+
+            updateEnemy(delta);
+            updatePlayer(delta);
+            updateShots(delta);
+
+            detectCollisions(enemy1, 5);
+            detectCollisions(enemy2, 10);
+        } else {
+            lbGameOver.setVisible(true);
+            lbGameOver.setPosition(camera.viewportWidth / 2 - lbGameOver.getWidth() / 2, camera.viewportHeight / 2 - lbGameOver.getHeight() /2);
+        }
 
         // Atualiza a situação do palco
         stage.act(delta);
 
         // Desenha o palco na tela
         stage.draw();
+    }
+
+    private void updateScore() {
+        lbScore.setText("Score: " + score.toString());
+        lbScore.setPosition(20, camera.viewportHeight - 30);
+    }
+
+    private void detectCollisions(Array<Image> list, int score) {
+        recPlayer.set(player.getX(), player.getY(), player.getWidth(), player.getHeight());
+
+        for (Image enemy : list) {
+            recEnemy.set(enemy.getX(), enemy.getY(), enemy.getWidth(), enemy.getHeight());
+            for (Image shot : shots) {
+                recShot.set(shot.getX(), shot.getY(), shot.getWidth(), shot.getHeight());
+                if (recEnemy.overlaps(recShot)) {
+                    // Ocorre uma solisão
+                    this.score += score;
+                    enemy.remove();
+                    list.removeValue(enemy, true);
+                    shot.remove();
+                    shots.removeValue(shot, true);
+                }
+                if (recEnemy.overlaps(recPlayer)) {
+                    gameOver = true;
+                    enemy.remove();
+                    list.removeValue(enemy, true);
+                }
+            }
+        }
     }
 
     private void updatePlayer(float delta) {
@@ -190,11 +242,11 @@ public class GameScreen extends BaseScreen {
     }
 
     private float enemyInterval = 0; // Tempo acumulado entre os tiros
-    private final float MIN_ENEMY_INTERVAL = 0.2f; // Minimo de tempo entre os tiros
+    private final float MIN_ENEMY_INTERVAL = 0.3f; // Minimo de tempo entre os tiros
 
     private void updateEnemy(float delta) {
     	int tipo = MathUtils.random(1, 3);
-        float speed = 200;
+        float speed1 = 200, speed2 = 300;
 
         enemyInterval += delta;
         if (enemyInterval >= MIN_ENEMY_INTERVAL) {
@@ -220,14 +272,22 @@ public class GameScreen extends BaseScreen {
 
     	for (Image enemy : enemy1) {
     		float x = enemy.getX();
-    		float y = enemy.getY() - speed * delta;
+    		float y = enemy.getY() - speed1 * delta;
     		enemy.setPosition(x, y);
+            if (enemy.getY() + enemy.getHeight() < 0) {
+                enemy.remove();
+                enemy1.removeValue(enemy, true);
+            }
     	}
 
         for (Image enemy : enemy2) {
             float x = enemy.getX();
-            float y = enemy.getY() - speed * delta;
+            float y = enemy.getY() - speed2 * delta;
             enemy.setPosition(x, y);
+            if (enemy.getY() + enemy.getHeight() < 0) {
+                enemy.remove();
+                enemy2.removeValue(enemy, true);
+            }
         }
     }
 
