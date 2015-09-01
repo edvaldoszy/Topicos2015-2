@@ -8,6 +8,8 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.graphics.g2d.freetype.FreetypeFontLoader;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -16,6 +18,7 @@ import com.badlogic.gdx.utils.viewport.FillViewport;
 import com.edvaldotsi.spaceinvaders.MainGame;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.math.MathUtils;
+import com.edvaldotsi.spaceinvaders.element.Explosion;
 
 /**
  * Created by Edvaldo on 03/08/15.
@@ -24,7 +27,7 @@ public class GameScreen extends BaseScreen {
 
     private OrthographicCamera camera;
     private SpriteBatch batch;
-    private Stage stage;
+    private Stage stage, stageInfo;
 
     private BitmapFont font;
     private Label lbScore, lbGameOver;
@@ -46,6 +49,9 @@ public class GameScreen extends BaseScreen {
     private Integer score = 0;
     private boolean gameOver = false;
 
+    private Array<Texture> textureExplosion = new Array<Texture>();
+    private Array<Explosion> explosions = new Array<Explosion>();
+
     /**
      * Construtor padrão da tela do jogo
      *
@@ -63,6 +69,7 @@ public class GameScreen extends BaseScreen {
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         batch = new SpriteBatch();
         stage = new Stage(new FillViewport(camera.viewportWidth, camera.viewportHeight, camera));
+        stageInfo = new Stage(new FillViewport(camera.viewportWidth, camera.viewportHeight, camera));
 
         initTextures();
         initFont();
@@ -79,6 +86,11 @@ public class GameScreen extends BaseScreen {
     	textureShot = new Texture("sprites/shot.png");
     	textureEnemy1 = new Texture("sprites/enemy1.png");
     	textureEnemy2 = new Texture("sprites/enemy2.png");
+
+        for (int n = 1; n <= 17; n++) {
+            Texture t = new Texture("sprites/explosion-" + n + ".png");
+            textureExplosion.add(t);
+        }
     }
 
     /**
@@ -105,15 +117,20 @@ public class GameScreen extends BaseScreen {
         style.font = font;
 
         lbScore = new Label("Score: 0", style);
-        stage.addActor(lbScore);
+        stageInfo.addActor(lbScore);
 
         lbGameOver = new Label("Game Over", style);
         lbGameOver.setVisible(false);
-        stage.addActor(lbGameOver);
+        stageInfo.addActor(lbGameOver);
     }
 
     private void initFont() {
-        font = new BitmapFont();
+        FreeTypeFontGenerator gen = new FreeTypeFontGenerator(Gdx.files.internal("fonts/roboto.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter p = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        p.color = Color.WHITE;
+        p.size = 18;
+        font = gen.generateFont(p);
+        gen.dispose();
     }
 
     /**
@@ -138,14 +155,29 @@ public class GameScreen extends BaseScreen {
             detectCollisions(enemy2, 10);
         } else {
             lbGameOver.setVisible(true);
-            lbGameOver.setPosition(camera.viewportWidth / 2 - lbGameOver.getWidth() / 2, camera.viewportHeight / 2 - lbGameOver.getHeight() /2);
+            lbGameOver.setPosition(camera.viewportWidth / 2 - lbGameOver.getWidth() / 2, camera.viewportHeight / 2 - lbGameOver.getHeight() / 2);
         }
+
+        updateExplosions(delta);
 
         // Atualiza a situação do palco
         stage.act(delta);
+        stageInfo.act(delta);
 
         // Desenha o palco na tela
         stage.draw();
+        stageInfo.draw();
+    }
+
+    private void updateExplosions(float delta) {
+        for (Explosion e : explosions) {
+            if (e.getState() >= 16) {
+                explosions.removeValue(e, true);
+                e.getActor().remove();
+            } else {
+                e.update(delta);
+            }
+        }
     }
 
     private void updateScore() {
@@ -167,14 +199,22 @@ public class GameScreen extends BaseScreen {
                     list.removeValue(enemy, true);
                     shot.remove();
                     shots.removeValue(shot, true);
-                }
-                if (recEnemy.overlaps(recPlayer)) {
-                    gameOver = true;
-                    enemy.remove();
-                    list.removeValue(enemy, true);
+                    createExplosion(enemy.getX(), enemy.getY());
                 }
             }
+            if (recEnemy.overlaps(recPlayer)) {
+                gameOver = true;
+                enemy.remove();
+                list.removeValue(enemy, true);
+            }
         }
+    }
+
+    private void createExplosion(float x, float y) {
+        Image actor = new Image(textureExplosion.get(0));
+        actor.setPosition(x, y);
+        stage.addActor(actor);
+        explosions.add(new Explosion(actor, textureExplosion));
     }
 
     private void updatePlayer(float delta) {
@@ -320,15 +360,21 @@ public class GameScreen extends BaseScreen {
 
     /**
      * É chamado quando a tela for destruída
+     *
      */
     @Override
     public void dispose() {
         batch.dispose();
         stage.dispose();
+        stageInfo.dispose();
         font.dispose();
         texturePlayer.dispose();
         textureShot.dispose();
         textureEnemy1.dispose();
-        textureEnemy2.dispose();;
+        textureEnemy2.dispose();
+
+        for (Texture t : textureExplosion) {
+            t.dispose();
+        }
     }
 }
