@@ -2,6 +2,8 @@ package com.edvaldotsi.spaceinvaders.screen;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -9,7 +11,6 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
-import com.badlogic.gdx.graphics.g2d.freetype.FreetypeFontLoader;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
@@ -52,6 +53,11 @@ public class GameScreen extends BaseScreen {
     private Array<Texture> textureExplosion = new Array<Texture>();
     private Array<Explosion> explosions = new Array<Explosion>();
 
+    private Sound shotSound;
+    private Sound explosionSound;
+    private Sound gameOverSound;
+    private Music backgroundMusic;
+
     /**
      * Construtor padrão da tela do jogo
      *
@@ -71,6 +77,7 @@ public class GameScreen extends BaseScreen {
         stage = new Stage(new FillViewport(camera.viewportWidth, camera.viewportHeight, camera));
         stageInfo = new Stage(new FillViewport(camera.viewportWidth, camera.viewportHeight, camera));
 
+        initSound();
         initTextures();
         initFont();
         initPlayer();
@@ -80,6 +87,15 @@ public class GameScreen extends BaseScreen {
         recShot = new Rectangle();
         recShot = new Rectangle();
         recEnemy = new Rectangle();
+    }
+
+    private void initSound() {
+        shotSound = Gdx.audio.newSound(Gdx.files.internal("sounds/shoot.mp3"));
+        explosionSound = Gdx.audio.newSound(Gdx.files.internal("sounds/explosion.mp3"));
+        gameOverSound = Gdx.audio.newSound(Gdx.files.internal("sounds/game_over.mp3"));
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("sounds/background.mp3"));
+
+        backgroundMusic.setLooping(true);
     }
 
     private void initTextures() {
@@ -119,7 +135,7 @@ public class GameScreen extends BaseScreen {
         lbScore = new Label("Score: 0", style);
         stageInfo.addActor(lbScore);
 
-        lbGameOver = new Label("Game Over", style);
+        lbGameOver = new Label("Prefiro morrer do que perder a vida", style);
         lbGameOver.setVisible(false);
         stageInfo.addActor(lbGameOver);
     }
@@ -142,8 +158,11 @@ public class GameScreen extends BaseScreen {
         Gdx.gl.glClearColor(0.023f, 0.039f, 0.08f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        controls();
+
         if (!gameOver) {
-            controls();
+            if (!backgroundMusic.isPlaying())
+                backgroundMusic.play();
 
             updateScore();
 
@@ -154,6 +173,9 @@ public class GameScreen extends BaseScreen {
             detectCollisions(enemy1, 5);
             detectCollisions(enemy2, 10);
         } else {
+            if (backgroundMusic.isPlaying())
+                backgroundMusic.stop();
+
             lbGameOver.setVisible(true);
             lbGameOver.setPosition(camera.viewportWidth / 2 - lbGameOver.getWidth() / 2, camera.viewportHeight / 2 - lbGameOver.getHeight() / 2);
         }
@@ -199,22 +221,27 @@ public class GameScreen extends BaseScreen {
                     list.removeValue(enemy, true);
                     shot.remove();
                     shots.removeValue(shot, true);
-                    createExplosion(enemy.getX(), enemy.getY());
+                    createExplosion(enemy.getX() + enemy.getWidth() / 2, enemy.getY() + enemy.getHeight() / 2);
                 }
             }
             if (recEnemy.overlaps(recPlayer)) {
                 gameOver = true;
                 enemy.remove();
                 list.removeValue(enemy, true);
+                createExplosion(enemy.getX() + enemy.getWidth() / 2, enemy.getY() + enemy.getHeight() / 2);
+
+                gameOverSound.play();
             }
         }
     }
 
     private void createExplosion(float x, float y) {
         Image actor = new Image(textureExplosion.get(0));
-        actor.setPosition(x, y);
+        actor.setPosition(x - actor.getWidth() / 2, y - actor.getHeight() / 2);
         stage.addActor(actor);
         explosions.add(new Explosion(actor, textureExplosion));
+
+        explosionSound.play();
     }
 
     private void updatePlayer(float delta) {
@@ -248,6 +275,9 @@ public class GameScreen extends BaseScreen {
         toUp = Gdx.input.isKeyPressed(Input.Keys.UP);
         toDown = Gdx.input.isKeyPressed(Input.Keys.DOWN);
         shoting = Gdx.input.isKeyPressed(Input.Keys.SPACE);
+
+        if (Gdx.input.isKeyPressed(Input.Keys.ENTER))
+            gameOver = false;
     }
 
     private float shotInterval = 0; // Tempo acumulado entre os tiros
@@ -263,9 +293,11 @@ public class GameScreen extends BaseScreen {
     			Image shot = new Image(textureShot);
 	    		float x = (player.getX() + player.getWidth() / 2 - shot.getWidth() / 2), y = (player.getY() + player.getHeight());
 	    		shot.setPosition(x, y);
-	    		shots.add(shot);
+                shots.add(shot);
 	    		stage.addActor(shot);
 	    		shotInterval = 0;
+
+                shotSound.play();
     		}
     	}
 
@@ -376,5 +408,9 @@ public class GameScreen extends BaseScreen {
         for (Texture t : textureExplosion) {
             t.dispose();
         }
+        shotSound.dispose();
+        gameOverSound.dispose();
+        explosionSound.dispose();
+        backgroundMusic.dispose();
     }
 }
