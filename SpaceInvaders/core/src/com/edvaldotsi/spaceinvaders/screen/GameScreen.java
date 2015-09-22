@@ -1,7 +1,9 @@
 package com.edvaldotsi.spaceinvaders.screen;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
@@ -12,6 +14,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -48,7 +51,7 @@ public class GameScreen extends BaseScreen {
     private Rectangle recPlayer, recShot, recEnemy;
 
     private Integer score = 0;
-    private boolean gameOver = false;
+    private boolean paused, isOver = false;
 
     private Array<Texture> textureExplosion = new Array<Texture>();
     private Array<Explosion> explosions = new Array<Explosion>();
@@ -160,7 +163,7 @@ public class GameScreen extends BaseScreen {
 
         controls();
 
-        if (!gameOver) {
+        if (!paused) {
             if (!backgroundMusic.isPlaying())
                 backgroundMusic.play();
 
@@ -178,6 +181,10 @@ public class GameScreen extends BaseScreen {
 
             lbGameOver.setVisible(true);
             lbGameOver.setPosition(camera.viewportWidth / 2 - lbGameOver.getWidth() / 2, camera.viewportHeight / 2 - lbGameOver.getHeight() / 2);
+
+            if (isOver) {
+                resetGame();
+            }
         }
 
         updateExplosions(delta);
@@ -207,6 +214,18 @@ public class GameScreen extends BaseScreen {
         lbScore.setPosition(20, camera.viewportHeight - 30);
     }
 
+    public void resetGame() {
+        Preferences preferences = Gdx.app.getPreferences("SpaceInvaders");
+        int highScore = preferences.getInteger("high_score", 0);
+        if (score > highScore) {
+            highScore = score;
+            preferences.putInteger("high_score", highScore);
+            preferences.flush();
+        }
+
+        game.setScreen(new MenuScreen(game));
+    }
+
     private void detectCollisions(Array<Image> list, int score) {
         recPlayer.set(player.getX(), player.getY(), player.getWidth(), player.getHeight());
 
@@ -225,7 +244,7 @@ public class GameScreen extends BaseScreen {
                 }
             }
             if (recEnemy.overlaps(recPlayer)) {
-                gameOver = true;
+                isOver = paused = true;
                 enemy.remove();
                 list.removeValue(enemy, true);
                 createExplosion(enemy.getX() + enemy.getWidth() / 2, enemy.getY() + enemy.getHeight() / 2);
@@ -268,16 +287,43 @@ public class GameScreen extends BaseScreen {
         player.setPosition(x, y);
     }
 
+    private boolean touchedRight() {
+        if (!Gdx.input.isTouched())
+            return false;
+
+        Vector3 pos = new Vector3();
+        pos.x = Gdx.input.getX();
+        pos.y = Gdx.input.getY();
+        pos = camera.unproject(pos);
+
+        return pos.x > (camera.viewportWidth / 2);
+    }
+
+    private boolean touchedLeft() {
+        if (!Gdx.input.isTouched())
+            return false;
+
+        Vector3 pos = new Vector3();
+        pos.x = Gdx.input.getX();
+        pos.y = Gdx.input.getY();
+        pos = camera.unproject(pos);
+
+        return pos.x < (camera.viewportWidth / 2);
+    }
+
     private void controls() {
 
-        toLeft = Gdx.input.isKeyPressed(Input.Keys.LEFT);
-        toRight = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER))
+            paused = !paused;
+
+        if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE))
+            isOver = paused = true;
+
+        toLeft = Gdx.input.isKeyPressed(Input.Keys.LEFT) || touchedLeft();
+        toRight = Gdx.input.isKeyPressed(Input.Keys.RIGHT) || touchedRight();
         toUp = Gdx.input.isKeyPressed(Input.Keys.UP);
         toDown = Gdx.input.isKeyPressed(Input.Keys.DOWN);
-        shoting = Gdx.input.isKeyPressed(Input.Keys.SPACE);
-
-        if (Gdx.input.isKeyPressed(Input.Keys.ENTER))
-            gameOver = false;
+        shoting = Gdx.input.isKeyPressed(Input.Keys.SPACE) || Gdx.app.getType() == Application.ApplicationType.Android;
     }
 
     private float shotInterval = 0; // Tempo acumulado entre os tiros
